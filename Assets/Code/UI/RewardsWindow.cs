@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Code.Inventory;
 using TMPro;
 using UnityEngine;
@@ -9,9 +8,7 @@ public class RewardsWindow : BaseWindow
 {
     [SerializeField] private Button _closeButton;
     [SerializeField] private TMP_Text _titleText;
-    [SerializeField] private TMP_Text _rewardsText;
-
-    [SerializeField] private RewardView _rewardPrefab;
+    [SerializeField] private RewardView _rewardViewPrefab;
     [SerializeField] private ScrollRect _scrollRect;
     [SerializeField] private RectTransform _scrollContent;
     
@@ -24,17 +21,21 @@ public class RewardsWindow : BaseWindow
     protected override void OnShow(object[] args)
     {
         _titleText.text = (string)args[0];
-
         var items = (List<InventoryItem>)args[1];
 
         foreach (var item in items)
         {
-            var prefab = Instantiate(_rewardPrefab, _scrollContent);
-            prefab.Draw(item);
+            var prefab = Instantiate(_rewardViewPrefab, _scrollContent);
+            prefab.DrawIcon(item);
+            prefab.LongTapStarted += () =>
+            {
+                var tooltip = Get<TooltipWindow>();
+                tooltip.Show();
+                tooltip.DrawToolTip(item);
+            };
+            prefab.LongTapEnded += () => Get<TooltipWindow>().Hide();
         }
 
-        _rewardsText.text = string.Join("\n", items.Select(x => $"{x.Title}"));
-        
         AdjustLayoutGroup();
     }
 

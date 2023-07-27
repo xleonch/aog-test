@@ -7,16 +7,16 @@ using UnityEngine.UI;
 public class RewardView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 {
     [SerializeField] private Image _rewardIcon;
-    [SerializeField] private float longTapThreshold = 0.5f;
+    [SerializeField] private float _longTapThreshold = 0.5f;
 
-    private bool pointerDown;
-    private float pointerDownTime;
+    private bool _isPointerDown;
+    private float _pointerDownStartTime;
 
     public event UnityAction LongTapStarted, LongTapEnded;
 
     private void Update()
     {
-        if (pointerDown && Time.time - pointerDownTime >= longTapThreshold)
+        if (_isPointerDown && Time.time - _pointerDownStartTime >= _longTapThreshold)
             LongTapStarted?.Invoke();
     }
 
@@ -27,15 +27,15 @@ public class RewardView : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        pointerDown = true;
-        pointerDownTime = Time.time;
+        _isPointerDown = true;
+        _pointerDownStartTime = Time.time;
     }
 
     public void OnPointerUp(PointerEventData eventData)
     {
-        pointerDown = false;
+        _isPointerDown = false;
 
-        if (Time.time - pointerDownTime >= longTapThreshold)
+        if (Time.time - _pointerDownStartTime >= _longTapThreshold)
             LongTapEnded?.Invoke();
     }
 }

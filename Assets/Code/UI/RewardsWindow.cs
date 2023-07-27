@@ -11,11 +11,16 @@ public class RewardsWindow : BaseWindow
     [SerializeField] private RewardView _rewardViewPrefab;
     [SerializeField] private ScrollRect _scrollRect;
     [SerializeField] private RectTransform _scrollContent;
-    
+
+    private readonly List<RewardView> _rewardViews = new List<RewardView>();
+
+    private float _rewardWidth;
+
     protected override void Awake()
     {
         base.Awake();
         _closeButton.onClick.AddListener(Hide);
+        _rewardWidth = _rewardViewPrefab.GetComponent<RectTransform>().sizeDelta.x;
     }
 
     protected override void OnShow(object[] args)
@@ -23,55 +28,55 @@ public class RewardsWindow : BaseWindow
         _titleText.text = (string)args[0];
         var items = (List<InventoryItem>)args[1];
 
-        foreach (var item in items)
-        {
-            var prefab = Instantiate(_rewardViewPrefab, _scrollContent);
-            prefab.DrawIcon(item);
-            prefab.LongTapStarted += () =>
-            {
-                var tooltip = Get<TooltipWindow>();
-                tooltip.Show();
-                tooltip.DrawToolTip(item);
-            };
-            prefab.LongTapEnded += () => Get<TooltipWindow>().Hide();
-        }
+        if (items == null) 
+            return;
 
-        AdjustLayoutGroup();
+        CreateRewardViews(items);
+        AdjustScrollContent();
     }
 
     protected override void OnHide()
     {
-        foreach (RectTransform child in _scrollContent.transform)
-            Destroy(child.gameObject);
+        foreach (var rewardView in _rewardViews)
+            DestroyImmediate(rewardView.gameObject);
+        _rewardViews.Clear();
 
         _scrollContent.anchoredPosition = Vector2.zero;
     }
 
-    void AdjustLayoutGroup()
+    private void CreateRewardViews(List<InventoryItem> items)
+    {
+        foreach (var item in items)
+        {
+            var prefab = Instantiate(_rewardViewPrefab, _scrollContent);
+            prefab.DrawIcon(item);
+            prefab.LongTapStarted += () => OnLongTapStarted(item);
+            prefab.LongTapEnded += OnLongTapEnded;
+            _rewardViews.Add(prefab);
+        }
+    }
+
+    private void OnLongTapStarted(InventoryItem item)
+    {
+        var tooltip = Get<TooltipWindow>();
+        tooltip.DrawToolTip(item);
+        tooltip.Show();
+    }
+
+    private void OnLongTapEnded()
+    {
+        Get<TooltipWindow>().Hide();
+    }
+
+    private void AdjustScrollContent()
     {
         var scrollWidth = _scrollRect.viewport.rect.width;
-        var childCount = _scrollContent.childCount;
-        var contentWidth = 0f;
-
-        for (var i = 0; i < childCount; i++)
-        {
-            var child = _scrollContent.GetChild(i) as RectTransform;
-            contentWidth += child!.sizeDelta.x;
-        }
+        var contentWidth = _rewardViews.Count * _rewardWidth;
         
+        // Включаем/выключаем скролл, выставляем анчор для контента в скролле (left, center)
         _scrollRect.enabled = contentWidth > scrollWidth;
-        
-        if (_scrollRect.enabled)
-        {
-            _scrollContent.anchorMin = new Vector2(0, 0.5f);
-            _scrollContent.anchorMax = new Vector2(0, 0.5f);
-            _scrollContent.pivot = new Vector2(0, 0.5f);
-        }
-        else
-        {
-            _scrollContent.anchorMin = new Vector2(0.5f, 0.5f);
-            _scrollContent.anchorMax = new Vector2(0.5f, 0.5f);
-            _scrollContent.pivot = new Vector2(0.5f, 0.5f);
-        }
+        _scrollContent.anchorMin = _scrollRect.enabled ? new Vector2(0, 0.5f) : new Vector2(0.5f, 0.5f);
+        _scrollContent.anchorMax = _scrollRect.enabled ? new Vector2(0, 0.5f) : new Vector2(0.5f, 0.5f);
+        _scrollContent.pivot = _scrollRect.enabled ? new Vector2(0, 0.5f) : new Vector2(0.5f, 0.5f);
     }
 }
